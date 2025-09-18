@@ -8,7 +8,7 @@ import { useState } from "react";
 type CoinTask = {
   id: number;
   coin: string;
-  amount: string;
+  amount: number;
   deadline: string;
   completed: boolean;
   editing?: boolean;
@@ -21,18 +21,24 @@ const TERTIARY = "#fbbf24"; // gold/yellow
 export default function Home() {
   const [tasks, setTasks] = useState<CoinTask[]>([]);
   const [tab, setTab] = useState<"planned" | "bought">("planned");
-  const [form, setForm] = useState({ coin: "", amount: "", deadline: "" });
+  const [form, setForm] = useState<{
+    coin: string;
+    amount: string;
+    deadline: string;
+  }>({ coin: "", amount: "", deadline: "" });
   const [anim, setAnim] = useState(false);
 
   const addTask = () => {
     if (!form.coin.trim() || !form.amount.trim() || !form.deadline.trim())
       return;
+    const amountNum = parseFloat(form.amount);
+    if (isNaN(amountNum)) return;
     setTasks([
       ...tasks,
       {
         id: Date.now(),
         coin: form.coin.trim(),
-        amount: form.amount.trim(),
+        amount: amountNum,
         deadline: form.deadline,
         completed: false,
       },
@@ -70,13 +76,15 @@ export default function Home() {
     newAmount: string,
     newDeadline: string
   ) => {
+    const amountNum = parseFloat(newAmount);
+    if (isNaN(amountNum)) return;
     setTasks((tasks) =>
       tasks.map((task) =>
         task.id === id
           ? {
               ...task,
               coin: newCoin,
-              amount: newAmount,
+              amount: amountNum,
               deadline: newDeadline,
               editing: false,
             }
@@ -145,7 +153,9 @@ export default function Home() {
               />
               <input
                 className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--secondary)]"
-                type="text"
+                type="number"
+                step="0.01"
+                min="0"
                 placeholder="Amount in USD (e.g. 50)"
                 value={form.amount}
                 onChange={(e) => setForm({ ...form, amount: e.target.value })}
@@ -194,7 +204,7 @@ export default function Home() {
                           saveEdit(
                             task.id,
                             e.target.value,
-                            task.amount,
+                            task.amount.toString(),
                             task.deadline
                           )
                         }
@@ -203,7 +213,7 @@ export default function Home() {
                             saveEdit(
                               task.id,
                               (e.target as HTMLInputElement).value,
-                              task.amount,
+                              task.amount.toString(),
                               task.deadline
                             );
                           }
@@ -240,7 +250,7 @@ export default function Home() {
                           saveEdit(
                             task.id,
                             task.coin,
-                            task.amount,
+                            task.amount.toString(),
                             e.target.value
                           )
                         }
@@ -249,7 +259,7 @@ export default function Home() {
                             saveEdit(
                               task.id,
                               task.coin,
-                              task.amount,
+                              task.amount.toString(),
                               (e.target as HTMLInputElement).value
                             );
                           }
