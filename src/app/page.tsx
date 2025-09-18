@@ -1,103 +1,381 @@
-import Image from "next/image";
+"use client";
+import { useState } from "react";
+
+// Suggested app name: "CoinBuy Planner"
+// Main title: "My Coin Buy List"
+// Tabs: "Planned Coins", "Bought Coins"
+
+type CoinTask = {
+  id: number;
+  coin: string;
+  amount: string;
+  deadline: string;
+  completed: boolean;
+  editing?: boolean;
+};
+
+const PRIMARY = "#3a185c"; // dark purple
+const SECONDARY = "#7c3aed"; // soft purple
+const TERTIARY = "#fbbf24"; // gold/yellow
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [tasks, setTasks] = useState<CoinTask[]>([]);
+  const [tab, setTab] = useState<"planned" | "bought">("planned");
+  const [form, setForm] = useState({ coin: "", amount: "", deadline: "" });
+  const [anim, setAnim] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const addTask = () => {
+    if (!form.coin.trim() || !form.amount.trim() || !form.deadline.trim())
+      return;
+    setTasks([
+      ...tasks,
+      {
+        id: Date.now(),
+        coin: form.coin.trim(),
+        amount: form.amount.trim(),
+        deadline: form.deadline,
+        completed: false,
+      },
+    ]);
+    setForm({ coin: "", amount: "", deadline: "" });
+    setAnim(true);
+    setTimeout(() => setAnim(false), 400);
+  };
+
+  const toggleTask = (id: number) => {
+    setTasks((tasks) =>
+      tasks.map((task) =>
+        task.id === id ? { ...task, completed: !task.completed } : task
+      )
+    );
+  };
+
+  const deleteTask = (id: number) => {
+    setTasks((tasks) => tasks.filter((task) => task.id !== id));
+  };
+
+  const startEdit = (id: number) => {
+    setTasks((tasks) =>
+      tasks.map((task) =>
+        task.id === id
+          ? { ...task, editing: true }
+          : { ...task, editing: false }
+      )
+    );
+  };
+
+  const saveEdit = (
+    id: number,
+    newCoin: string,
+    newAmount: string,
+    newDeadline: string
+  ) => {
+    setTasks((tasks) =>
+      tasks.map((task) =>
+        task.id === id
+          ? {
+              ...task,
+              coin: newCoin,
+              amount: newAmount,
+              deadline: newDeadline,
+              editing: false,
+            }
+          : task
+      )
+    );
+  };
+
+  const planned = tasks.filter((t) => !t.completed);
+  const bought = tasks.filter((t) => t.completed);
+
+  return (
+    <div
+      className="min-h-screen flex flex-col items-center justify-center py-10 px-4"
+      style={{
+        background: `linear-gradient(135deg, ${PRIMARY} 60%, ${SECONDARY} 100%)`,
+      }}
+    >
+      <div className="w-full max-w-2xl bg-white/90 rounded-2xl shadow-2xl p-8 relative animate-fade-in">
+        <h1
+          className="text-4xl font-extrabold mb-2 text-center"
+          style={{ color: PRIMARY }}
+        >
+          CoinBuy Planner
+        </h1>
+        <p className="text-center text-lg mb-6 text-gray-700 font-medium">
+          Plan your next crypto purchases
+        </p>
+        <div className="flex justify-center gap-4 mb-8">
+          <button
+            className={`px-4 py-2 rounded-full font-semibold transition-colors duration-200 ${
+              tab === "planned"
+                ? "bg-[var(--primary)] text-white shadow-md"
+                : "bg-gray-100 text-gray-700"
+            }`}
+            style={tab === "planned" ? { background: PRIMARY } : {}}
+            onClick={() => setTab("planned")}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Planned Coins
+          </button>
+          <button
+            className={`px-4 py-2 rounded-full font-semibold transition-colors duration-200 ${
+              tab === "bought"
+                ? "bg-[var(--secondary)] text-white shadow-md"
+                : "bg-gray-100 text-gray-700"
+            }`}
+            style={tab === "bought" ? { background: SECONDARY } : {}}
+            onClick={() => setTab("bought")}
           >
-            Read our docs
-          </a>
+            Bought Coins
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
+        {tab === "planned" && (
+          <div
+            className={`transition-all duration-300 ${
+              anim ? "animate-bounce-in" : ""
+            }`}
+          >
+            <div className="flex flex-col sm:flex-row gap-2 mb-6">
+              <input
+                className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
+                type="text"
+                placeholder="Coin name (e.g. BTC)"
+                value={form.coin}
+                onChange={(e) => setForm({ ...form, coin: e.target.value })}
+              />
+              <input
+                className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--secondary)]"
+                type="text"
+                placeholder="Amount in USD (e.g. 50)"
+                value={form.amount}
+                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              />
+              <input
+                className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--tertiary)]"
+                type="date"
+                value={form.deadline}
+                onChange={(e) => setForm({ ...form, deadline: e.target.value })}
+              />
+              <button
+                className="bg-[var(--primary)] hover:bg-[var(--secondary)] text-white px-4 py-2 rounded transition font-bold"
+                style={{ background: PRIMARY }}
+                onClick={addTask}
+              >
+                Add
+              </button>
+            </div>
+            <ul className="space-y-3">
+              {planned.length === 0 && (
+                <li className="text-gray-400 text-center">
+                  No planned coins yet.
+                </li>
+              )}
+              {planned.map((task) => (
+                <li
+                  key={task.id}
+                  className="flex items-center gap-2 bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100 transition hover:shadow-lg animate-fade-in"
+                  style={{ borderLeft: `6px solid ${SECONDARY}` }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={task.completed}
+                    onChange={() => toggleTask(task.id)}
+                    className="accent-[var(--primary)] w-5 h-5 transition"
+                    style={{ accentColor: PRIMARY }}
+                  />
+                  {task.editing ? (
+                    <>
+                      <input
+                        className="flex-1 border rounded px-2 py-1 mr-2"
+                        type="text"
+                        defaultValue={task.coin}
+                        autoFocus
+                        onBlur={(e) =>
+                          saveEdit(
+                            task.id,
+                            e.target.value,
+                            task.amount,
+                            task.deadline
+                          )
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            saveEdit(
+                              task.id,
+                              (e.target as HTMLInputElement).value,
+                              task.amount,
+                              task.deadline
+                            );
+                          }
+                        }}
+                      />
+                      <input
+                        className="w-24 border rounded px-2 py-1 mr-2"
+                        type="text"
+                        defaultValue={task.amount}
+                        onBlur={(e) =>
+                          saveEdit(
+                            task.id,
+                            task.coin,
+                            e.target.value,
+                            task.deadline
+                          )
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            saveEdit(
+                              task.id,
+                              task.coin,
+                              (e.target as HTMLInputElement).value,
+                              task.deadline
+                            );
+                          }
+                        }}
+                      />
+                      <input
+                        className="w-36 border rounded px-2 py-1 mr-2"
+                        type="date"
+                        defaultValue={task.deadline}
+                        onBlur={(e) =>
+                          saveEdit(
+                            task.id,
+                            task.coin,
+                            task.amount,
+                            e.target.value
+                          )
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            saveEdit(
+                              task.id,
+                              task.coin,
+                              task.amount,
+                              (e.target as HTMLInputElement).value
+                            );
+                          }
+                        }}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <span
+                        className="flex-1 font-semibold text-[var(--primary)]"
+                        style={{ color: PRIMARY }}
+                        onDoubleClick={() => startEdit(task.id)}
+                      >
+                        {task.coin}
+                      </span>
+                      <span
+                        className="w-24 text-center text-[var(--secondary)] font-medium"
+                        style={{ color: SECONDARY }}
+                      >
+                        {task.amount}
+                      </span>
+                      <span
+                        className="w-36 text-center text-[var(--tertiary)] font-medium"
+                        style={{ color: PRIMARY }}
+                      >
+                        {task.deadline}
+                      </span>
+                    </>
+                  )}
+                  <button
+                    className="text-xs text-[var(--secondary)] hover:underline px-1 font-bold"
+                    style={{ color: TERTIARY }}
+                    onClick={() => startEdit(task.id)}
+                    disabled={task.editing}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="text-xs text-red-500 hover:underline px-1 font-bold"
+                    onClick={() => deleteTask(task.id)}
+                  >
+                    Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {tab === "bought" && (
+          <div className="transition-all duration-300 animate-fade-in">
+            <ul className="space-y-3">
+              {bought.length === 0 && (
+                <li className="text-gray-400 text-center">
+                  No bought coins yet.
+                </li>
+              )}
+              {bought.map((task) => (
+                <li
+                  key={task.id}
+                  className="flex items-center gap-2 bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100 transition hover:shadow-lg animate-fade-in"
+                  style={{ borderLeft: `6px solid ${TERTIARY}` }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={task.completed}
+                    onChange={() => toggleTask(task.id)}
+                    className="accent-[var(--tertiary)] w-5 h-5 transition"
+                    style={{ accentColor: TERTIARY }}
+                  />
+                  <span
+                    className="flex-1 font-semibold text-[var(--primary)]"
+                    style={{ color: PRIMARY }}
+                  >
+                    {task.coin}
+                  </span>
+                  <span
+                    className="w-24 text-center text-[var(--secondary)] font-medium"
+                    style={{ color: SECONDARY }}
+                  >
+                    {task.amount}
+                  </span>
+                  <span
+                    className="w-36 text-center text-[var(--tertiary)] font-medium"
+                    style={{ color: TERTIARY }}
+                  >
+                    {task.deadline}
+                  </span>
+                  <span className="ml-2 text-xs text-green-600 font-bold">
+                    Bought
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+      <footer className="mt-8 text-xs text-white text-center opacity-80">
+        &copy; {new Date().getFullYear()} Developed by{" "}
         <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+          href="https://portfolio-ten-woad-19.vercel.app/"
           target="_blank"
           rel="noopener noreferrer"
+          className="underline hover:text-[var(--tertiary)]"
+          style={{ color: TERTIARY }}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
+          Akili Group
         </a>
       </footer>
+      <style>{`
+        :root {
+          --primary: ${PRIMARY};
+          --secondary: ${SECONDARY};
+          --tertiary: ${TERTIARY};
+        }
+        @keyframes fade-in {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: none; }
+        }
+        .animate-fade-in { animation: fade-in 0.5s cubic-bezier(.4,0,.2,1); }
+        @keyframes bounce-in {
+          0% { transform: scale(0.95); }
+          60% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
+        .animate-bounce-in { animation: bounce-in 0.4s cubic-bezier(.4,0,.2,1); }
+      `}</style>
     </div>
   );
 }
