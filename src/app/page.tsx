@@ -1,16 +1,16 @@
 "use client";
-import { useState } from "react";
+import React, { useState } from "react";
 
 // Suggested app name: "CoinBuy Planner"
 // Main title: "My Coin Buy List"
 // Tabs: "Planned Coins", "Bought Coins"
 
 type CoinTask = {
-  id: number;
-  coin: string;
-  amount: number;
+  _id: string;
+  name: string;
+  value: string;
   deadline: string;
-  completed: boolean;
+  bought: boolean;
   editing?: boolean;
 };
 
@@ -21,80 +21,117 @@ const TERTIARY = "#fbbf24"; // gold/yellow
 export default function Home() {
   const [tasks, setTasks] = useState<CoinTask[]>([]);
   const [tab, setTab] = useState<"planned" | "bought">("planned");
+
   const [form, setForm] = useState<{
-    coin: string;
-    amount: string;
+    name: string;
+    value: string;
     deadline: string;
-  }>({ coin: "", amount: "", deadline: "" });
+    bought: boolean;
+  }>({ name: "", value: "", deadline: "", bought: false });
+
   const [anim, setAnim] = useState(false);
 
-  const addTask = () => {
-    if (!form.coin.trim() || !form.amount.trim() || !form.deadline.trim())
+  // Fetch tasks from DB on mount
+  React.useEffect(() => {
+    fetch("/api/save")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setTasks(data.data);
+        }
+      });
+  }, []);
+
+  const addTask = async () => {
+    if (!form.name.trim() || !form.value.trim() || !form.deadline.trim())
       return;
-    const amountNum = parseFloat(form.amount);
-    if (isNaN(amountNum)) return;
-    setTasks([
-      ...tasks,
-      {
-        id: Date.now(),
-        coin: form.coin.trim(),
-        amount: amountNum,
+    const res = await fetch("/api/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: form.name.trim(),
+        value: form.value,
         deadline: form.deadline,
-        completed: false,
-      },
-    ]);
-    setForm({ coin: "", amount: "", deadline: "" });
-    setAnim(true);
-    setTimeout(() => setAnim(false), 400);
+        bought: false,
+      }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setTasks((prev) => [...prev, data.data]);
+      setForm({ name: "", value: "", deadline: "", bought: false });
+      setAnim(true);
+      setTimeout(() => setAnim(false), 400);
+    } else {
+      alert("Failed to save to database");
+    }
   };
 
-  const toggleTask = (id: number) => {
+  const toggleTask = async (_id: string) => {
+    const task = tasks.find((t) => t._id === _id);
+    if (!task) return;
+    const res = await fetch(`/api/save?_id=${_id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bought: !task.bought }),
+    });
+    if (res.ok) {
+      setTasks((tasks) =>
+        tasks.map((t) => (t._id === _id ? { ...t, bought: !t.bought } : t))
+      );
+    }
+  };
+
+  const deleteTask = async (_id: string) => {
+    const res = await fetch(`/api/save?_id=${_id}`, { method: "DELETE" });
+    if (res.ok) {
+      setTasks((tasks) => tasks.filter((task) => task._id !== _id));
+    }
+  };
+
+  const startEdit = (_id: string) => {
     setTasks((tasks) =>
       tasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      )
-    );
-  };
-
-  const deleteTask = (id: number) => {
-    setTasks((tasks) => tasks.filter((task) => task.id !== id));
-  };
-
-  const startEdit = (id: number) => {
-    setTasks((tasks) =>
-      tasks.map((task) =>
-        task.id === id
+        task._id === _id
           ? { ...task, editing: true }
           : { ...task, editing: false }
       )
     );
   };
 
-  const saveEdit = (
-    id: number,
-    newCoin: string,
-    newAmount: string,
+  const saveEdit = async (
+    _id: string,
+    newName: string,
+    newValue: string,
     newDeadline: string
   ) => {
-    const amountNum = parseFloat(newAmount);
-    if (isNaN(amountNum)) return;
-    setTasks((tasks) =>
-      tasks.map((task) =>
-        task.id === id
-          ? {
-              ...task,
-              coin: newCoin,
-              amount: amountNum,
-              deadline: newDeadline,
-              editing: false,
-            }
-          : task
-      )
-    );
+    const res = await fetch(`/api/save?_id=${_id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: newName,
+        value: newValue,
+        deadline: newDeadline,
+      }),
+    });
+    if (res.ok) {
+      setTasks((tasks) =>
+        tasks.map((task) =>
+          task._id === _id
+            ? {
+                ...task,
+                name: newName,
+                value: newValue,
+                deadline: newDeadline,
+                editing: false,
+              }
+            : task
+        )
+      );
+    }
   };
 
-  const planned = tasks.filter((t) => !t.completed);
-  const bought = tasks.filter((t) => t.completed);
+  const planned = tasks.filter((t) => !t.bought);
+  const bought = tasks.filter((t) => t.bought);
 
   return (
     <div
@@ -148,8 +185,8 @@ export default function Home() {
                 className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--primary)]"
                 type="text"
                 placeholder="Coin name (e.g. BTC)"
-                value={form.coin}
-                onChange={(e) => setForm({ ...form, coin: e.target.value })}
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
               <input
                 className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--secondary)]"
@@ -157,8 +194,8 @@ export default function Home() {
                 step="0.01"
                 min="0"
                 placeholder="Amount in USD (e.g. 50)"
-                value={form.amount}
-                onChange={(e) => setForm({ ...form, amount: e.target.value })}
+                value={form.value}
+                onChange={(e) => setForm({ ...form, value: e.target.value })}
               />
               <input
                 className="flex-1 border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[var(--tertiary)]"
@@ -182,14 +219,14 @@ export default function Home() {
               )}
               {planned.map((task) => (
                 <li
-                  key={task.id}
+                  key={task._id}
                   className="flex items-center gap-2 bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100 transition hover:shadow-lg animate-fade-in"
                   style={{ borderLeft: `6px solid ${SECONDARY}` }}
                 >
                   <input
                     type="checkbox"
-                    checked={task.completed}
-                    onChange={() => toggleTask(task.id)}
+                    checked={task.bought}
+                    onChange={() => toggleTask(task._id)}
                     className="accent-[var(--primary)] w-5 h-5 transition"
                     style={{ accentColor: PRIMARY }}
                   />
@@ -198,49 +235,29 @@ export default function Home() {
                       <input
                         className="flex-1 border rounded px-2 py-1 mr-2"
                         type="text"
-                        defaultValue={task.coin}
+                        defaultValue={task.name}
                         autoFocus
                         onBlur={(e) =>
                           saveEdit(
-                            task.id,
-                            e.target.value,
-                            task.amount.toString(),
+                            task._id,
+                            (e.target as HTMLInputElement).value,
+                            task.value,
                             task.deadline
                           )
                         }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            saveEdit(
-                              task.id,
-                              (e.target as HTMLInputElement).value,
-                              task.amount.toString(),
-                              task.deadline
-                            );
-                          }
-                        }}
                       />
                       <input
                         className="w-24 border rounded px-2 py-1 mr-2"
                         type="text"
-                        defaultValue={task.amount}
+                        defaultValue={task.value}
                         onBlur={(e) =>
                           saveEdit(
-                            task.id,
-                            task.coin,
-                            e.target.value,
+                            task._id,
+                            task.name,
+                            (e.target as HTMLInputElement).value,
                             task.deadline
                           )
                         }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            saveEdit(
-                              task.id,
-                              task.coin,
-                              (e.target as HTMLInputElement).value,
-                              task.deadline
-                            );
-                          }
-                        }}
                       />
                       <input
                         className="w-36 border rounded px-2 py-1 mr-2"
@@ -248,22 +265,12 @@ export default function Home() {
                         defaultValue={task.deadline}
                         onBlur={(e) =>
                           saveEdit(
-                            task.id,
-                            task.coin,
-                            task.amount.toString(),
-                            e.target.value
+                            task._id,
+                            task.name,
+                            task.value,
+                            (e.target as HTMLInputElement).value
                           )
                         }
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            saveEdit(
-                              task.id,
-                              task.coin,
-                              task.amount.toString(),
-                              (e.target as HTMLInputElement).value
-                            );
-                          }
-                        }}
                       />
                     </>
                   ) : (
@@ -271,35 +278,37 @@ export default function Home() {
                       <span
                         className="flex-1 font-semibold text-[var(--primary)]"
                         style={{ color: PRIMARY }}
-                        onDoubleClick={() => startEdit(task.id)}
+                        onDoubleClick={() => startEdit(task._id)}
                       >
-                        {task.coin}
+                        {task.name}
                       </span>
                       <span
                         className="w-24 text-center text-[var(--secondary)] font-medium"
                         style={{ color: SECONDARY }}
                       >
-                        {task.amount}
+                        {task.value}
                       </span>
                       <span
                         className="w-36 text-center text-[var(--tertiary)] font-medium"
-                        style={{ color: PRIMARY }}
+                        style={{ color: TERTIARY }}
                       >
-                        {task.deadline}
+                        {task.deadline
+                          ? new Date(task.deadline).toLocaleDateString("en-GB")
+                          : ""}
                       </span>
                     </>
                   )}
                   <button
                     className="text-xs text-[var(--secondary)] hover:underline px-1 font-bold"
                     style={{ color: TERTIARY }}
-                    onClick={() => startEdit(task.id)}
+                    onClick={() => startEdit(task._id)}
                     disabled={task.editing}
                   >
                     Edit
                   </button>
                   <button
                     className="text-xs text-red-500 hover:underline px-1 font-bold"
-                    onClick={() => deleteTask(task.id)}
+                    onClick={() => deleteTask(task._id)}
                   >
                     Delete
                   </button>
@@ -318,14 +327,14 @@ export default function Home() {
               )}
               {bought.map((task) => (
                 <li
-                  key={task.id}
+                  key={task._id}
                   className="flex items-center gap-2 bg-white rounded-xl px-4 py-3 shadow-sm border border-gray-100 transition hover:shadow-lg animate-fade-in"
                   style={{ borderLeft: `6px solid ${TERTIARY}` }}
                 >
                   <input
                     type="checkbox"
-                    checked={task.completed}
-                    onChange={() => toggleTask(task.id)}
+                    checked={task.bought}
+                    onChange={() => toggleTask(task._id)}
                     className="accent-[var(--tertiary)] w-5 h-5 transition"
                     style={{ accentColor: TERTIARY }}
                   />
@@ -333,19 +342,21 @@ export default function Home() {
                     className="flex-1 font-semibold text-[var(--primary)]"
                     style={{ color: PRIMARY }}
                   >
-                    {task.coin}
+                    {task.name}
                   </span>
                   <span
                     className="w-24 text-center text-[var(--secondary)] font-medium"
                     style={{ color: SECONDARY }}
                   >
-                    {task.amount}
+                    {task.value}
                   </span>
                   <span
                     className="w-36 text-center text-[var(--tertiary)] font-medium"
                     style={{ color: TERTIARY }}
                   >
-                    {task.deadline}
+                    {task.deadline
+                      ? new Date(task.deadline).toLocaleDateString("en-GB")
+                      : ""}
                   </span>
                   <span className="ml-2 text-xs text-green-600 font-bold">
                     Bought
