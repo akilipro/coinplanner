@@ -36,7 +36,6 @@ export default function Home() {
   const [authError, setAuthError] = useState("");
   // Profile dropdown state (must be at top level)
   const [showProfile, setShowProfile] = useState(false);
-
   useEffect(() => {
     if (session) {
       fetch("/api/save")

@@ -19,7 +19,10 @@ export const authOptions = {
       },
       async authorize(credentials, req) {
         await dbConnect();
-        const { username, email, password, isSignUp } = credentials;
+        const username = credentials?.username;
+        const email = credentials?.email;
+        const password = credentials?.password;
+        const isSignUp = credentials?.isSignUp;
         if (isSignUp === "true") {
           // Registration flow
           if (!username || !email || !password) return null;
