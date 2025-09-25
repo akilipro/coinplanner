@@ -1,9 +1,6 @@
 "use client";
-import React, { useState } from "react";
-
-// Suggested app name: "CoinBuy Planner"
-// Main title: "My Coin Buy List"
-// Tabs: "Planned Coins", "Bought Coins"
+import React, { useState, useEffect } from "react";
+import { useSession, signIn, signOut } from "next-auth/react";
 
 type CoinTask = {
   _id: string;
@@ -14,38 +11,171 @@ type CoinTask = {
   editing?: boolean;
 };
 
-const PRIMARY = "#3a185c"; // dark purple
-const SECONDARY = "#7c3aed"; // soft purple
-const TERTIARY = "#fbbf24"; // gold/yellow
+const PRIMARY = "#3a185c";
+const SECONDARY = "#7c3aed";
+const TERTIARY = "#fbbf24";
 
 export default function Home() {
+  const { data: session, status } = useSession();
   const [tasks, setTasks] = useState<CoinTask[]>([]);
   const [tab, setTab] = useState<"planned" | "bought">("planned");
-
-  const [form, setForm] = useState<{
-    name: string;
-    value: string;
-    deadline: string;
-    bought: boolean;
-  }>({ name: "", value: "", deadline: "", bought: false });
-
+  const [form, setForm] = useState({
+    name: "",
+    value: "",
+    deadline: "",
+    bought: false,
+  });
   const [anim, setAnim] = useState(false);
+  // Auth UI state (must be at top level)
+  const [authTab, setAuthTab] = useState<"signin" | "register">("signin");
+  const [authForm, setAuthForm] = useState({
+    username: "",
+    email: "",
+    password: "",
+  });
+  const [authError, setAuthError] = useState("");
+  // Profile dropdown state (must be at top level)
+  const [showProfile, setShowProfile] = useState(false);
 
-  // Fetch tasks from DB on mount
-  React.useEffect(() => {
-    fetch("/api/save")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setTasks(data.data);
-        }
-      });
-  }, []);
+  useEffect(() => {
+    if (session) {
+      fetch("/api/save")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success) {
+            setTasks(data.data);
+          }
+        });
+    }
+  }, [session]);
+
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-900 to-yellow-400 p-8">
+        <h1 className="text-5xl font-extrabold mb-4 text-white drop-shadow-lg text-center">
+          Welcome to CoinBuy Planner
+        </h1>
+        <p className="text-xl text-white/90 mb-8 text-center max-w-xl">
+          Plan and track your crypto purchases. Register to securely save your
+          coin buy plans, access them from anywhere, and never miss your
+          investment goals.
+        </p>
+        <div className="flex gap-4 mb-6">
+          <button
+            className={`px-6 py-2 rounded-full font-bold transition-colors duration-200 ${
+              authTab === "signin"
+                ? "bg-yellow-400 text-purple-900"
+                : "bg-white/30 text-white"
+            }`}
+            onClick={() => {
+              setAuthTab("signin");
+              setAuthError("");
+            }}
+          >
+            Sign In
+          </button>
+          <button
+            className={`px-6 py-2 rounded-full font-bold transition-colors duration-200 ${
+              authTab === "register"
+                ? "bg-yellow-400 text-purple-900"
+                : "bg-white/30 text-white"
+            }`}
+            onClick={() => {
+              setAuthTab("register");
+              setAuthError("");
+            }}
+          >
+            Register
+          </button>
+        </div>
+        <form
+          className="flex flex-col gap-4 bg-white/90 rounded-xl shadow-lg p-8 w-full max-w-sm"
+          onSubmit={async (e) => {
+            e.preventDefault();
+            setAuthError("");
+            const isSignUp = authTab === "register";
+            const res = await signIn("credentials", {
+              redirect: false,
+              username: authForm.username,
+              email: authForm.email,
+              password: authForm.password,
+              isSignUp: isSignUp ? "true" : "",
+            });
+            if (res?.error) {
+              // Show user-friendly error
+              if (res.error === "CredentialsSignin") {
+                setAuthError(
+                  "User not found or password is incorrect. Please check your credentials or register."
+                );
+              } else {
+                setAuthError(res.error);
+              }
+            }
+          }}
+        >
+          {authTab === "register" && (
+            <input
+              className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+              type="text"
+              placeholder="Username"
+              value={authForm.username}
+              onChange={(e) =>
+                setAuthForm((f) => ({ ...f, username: e.target.value }))
+              }
+              required
+            />
+          )}
+          <input
+            className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            type="email"
+            placeholder="Email"
+            value={authForm.email}
+            onChange={(e) =>
+              setAuthForm((f) => ({ ...f, email: e.target.value }))
+            }
+            required
+          />
+          <input
+            className="border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+            type="password"
+            placeholder="Password"
+            value={authForm.password}
+            onChange={(e) =>
+              setAuthForm((f) => ({ ...f, password: e.target.value }))
+            }
+            required
+          />
+          {authError && (
+            <div className="text-red-600 text-sm text-center">{authError}</div>
+          )}
+          <button
+            type="submit"
+            className="bg-yellow-400 hover:bg-yellow-300 text-purple-900 font-bold px-8 py-2 rounded-full text-lg shadow-lg transition"
+          >
+            {authTab === "signin" ? "Sign In" : "Register"}
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  // Authenticated: show planner UI
+  const planned = tasks.filter((t) => !t.bought);
+  const bought = tasks.filter((t) => t.bought);
 
   const addTask = async () => {
     if (!form.name.trim() || !form.value.trim() || !form.deadline.trim())
       return;
     const res = await fetch("/api/save", {
+      credentials: "include",
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -70,6 +200,7 @@ export default function Home() {
     const task = tasks.find((t) => t._id === _id);
     if (!task) return;
     const res = await fetch(`/api/save?_id=${_id}`, {
+      credentials: "include",
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ bought: !task.bought }),
@@ -82,7 +213,10 @@ export default function Home() {
   };
 
   const deleteTask = async (_id: string) => {
-    const res = await fetch(`/api/save?_id=${_id}`, { method: "DELETE" });
+    const res = await fetch(`/api/save?_id=${_id}`, {
+      method: "DELETE",
+      credentials: "include",
+    });
     if (res.ok) {
       setTasks((tasks) => tasks.filter((task) => task._id !== _id));
     }
@@ -130,9 +264,6 @@ export default function Home() {
     }
   };
 
-  const planned = tasks.filter((t) => !t.bought);
-  const bought = tasks.filter((t) => t.bought);
-
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center py-10 px-4"
@@ -141,6 +272,47 @@ export default function Home() {
       }}
     >
       <div className="w-full max-w-2xl bg-white/90 rounded-2xl shadow-2xl p-8 relative animate-fade-in">
+        {/* Profile Icon Dropdown */}
+        <div className="absolute top-4 right-4 z-20">
+          <button
+            onClick={() => setShowProfile((v) => !v)}
+            className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center shadow hover:bg-gray-300 focus:outline-none"
+            title="Profile"
+          >
+            <svg
+              width="24"
+              height="24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-gray-700"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 4-7 8-7s8 3 8 7" />
+            </svg>
+          </button>
+          {showProfile && (
+            <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 p-4 flex flex-col items-start animate-fade-in">
+              <div className="mb-2 text-gray-800 font-semibold">
+                {session.user?.name}
+              </div>
+              <div className="mb-4 text-gray-600 text-sm">
+                {session.user?.email}
+              </div>
+              <button
+                onClick={() => {
+                  setShowProfile(false);
+                  signOut();
+                }}
+                className="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded text-sm font-bold"
+              >
+                Sign Out
+              </button>
+            </div>
+          )}
+        </div>
         <h1
           className="text-4xl font-extrabold mb-2 text-center"
           style={{ color: PRIMARY }}

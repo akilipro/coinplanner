@@ -1,42 +1,65 @@
-# Todo App
+# CoinBuy Planner
 
-This is a simple Todo application built with [Next.js](https://nextjs.org) and [Tailwind CSS](https://tailwindcss.com). It allows you to add, edit, delete, and mark todos as completed. The app uses functional React components and hooks for state management, and is styled for a clean, responsive UI.
+CoinBuy Planner is a secure crypto purchase planning app built with [Next.js](https://nextjs.org), [NextAuth.js](https://next-auth.js.org/), [MongoDB](https://www.mongodb.com/), and [Tailwind CSS](https://tailwindcss.com). Only registered users can add/view their own data. Each saved plan is linked to the user. Non-registered users see only a landing page optimized for conversion.
 
 ## Getting Started
 
 ## Features
 
-- Add new todos
-- Edit existing todos (double-click or use Edit button)
-- Delete todos
-- Mark todos as completed
+- User authentication (Email, Google, Facebook)
+- Each user sees only their own saved plans
+- Add, edit, delete, and mark coins as bought
 - Responsive and clean UI with Tailwind CSS
+- Secure MongoDB data storage
+- Conversion-optimized landing page for new users
 
 ## Getting Started
 
-First, install dependencies and run the development server:
+1. Clone the repo and install dependencies:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+   ```bash
+   npm install
+   # or yarn install
+   ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Create a `.env.local` file with your MongoDB URI and NextAuth provider secrets:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to use the Todo app.
+   ```env
+   MONGO_URI=your_mongodb_uri
+   EMAIL_SERVER=your_email_server
+   EMAIL_FROM=your_email_from
+   GOOGLE_CLIENT_ID=your_google_client_id
+   GOOGLE_CLIENT_SECRET=your_google_client_secret
+   FACEBOOK_CLIENT_ID=your_facebook_client_id
+   FACEBOOK_CLIENT_SECRET=your_facebook_client_secret
+   ```
 
-You can start editing the app by modifying `src/app/page.tsx`. The page auto-updates as you edit the file.
+3. Run the development server:
+
+   ```bash
+   npm run dev
+   # or yarn dev
+   ```
+
+4. Open [http://localhost:3000](http://localhost:3000) to use the app.
+
+## Authentication & User Data
+
+- Only authenticated users (Email, Google, Facebook) can add/view their own plans.
+- Each plan is linked to the user who created it.
+- Non-authenticated users see only the landing page and cannot access planner features.
+
+## Landing Page
+
+Visitors who are not logged in see a conversion-optimized landing page with a call to action to register or sign in.
 
 ---
 
 ## Learn More
 
 - [Next.js Documentation](https://nextjs.org/docs)
+- [NextAuth.js Documentation](https://next-auth.js.org/)
+- [MongoDB Documentation](https://www.mongodb.com/docs/)
 - [Tailwind CSS Documentation](https://tailwindcss.com/docs)
 
 ---
