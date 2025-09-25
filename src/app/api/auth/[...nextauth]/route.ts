@@ -1,4 +1,6 @@
 import NextAuth from "next-auth";
+import type { Session } from "next-auth";
+import type { JWT } from "next-auth/jwt";
 import CredentialsProvider from "next-auth/providers/credentials";
 import dbConnect from "@/lib/mongodb";
 import { User } from "@/lib/user-model";
@@ -51,7 +53,7 @@ export const authOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async session({ session, token }) {
+    async session({ session, token }: { session: Session; token: JWT }) {
       if (session?.user) {
         session.user.id = token.sub;
       }
