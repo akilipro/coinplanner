@@ -23,14 +23,16 @@ const Planner =
 export async function GET(req: NextRequest) {
   await dbConnect();
   const session = await getServerSession(authOptions);
-  if (!session || !session.user?.id) {
+  if (!session || !(session.user && (session.user as { id?: string }).id)) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
       { status: 401 }
     );
   }
   try {
-    const tasks = await Planner.find({ userId: session.user.id }).sort({
+    const tasks = await Planner.find({
+      userId: (session.user as { id?: string }).id,
+    }).sort({
       deadline: 1,
     });
     return NextResponse.json({ success: true, data: tasks });
@@ -59,7 +61,7 @@ export async function PATCH(req: NextRequest) {
   try {
     // Only update if the task belongs to the user
     const updated = await Planner.findOneAndUpdate(
-      { _id, userId: session.user.id },
+      { _id, userId: (session.user as { id?: string }).id },
       update,
       { new: true }
     );
@@ -88,7 +90,10 @@ export async function DELETE(req: NextRequest) {
   const { _id } = await req.json();
   try {
     // Only delete if the task belongs to the user
-    await Planner.findOneAndDelete({ _id, userId: session.user.id });
+    await Planner.findOneAndDelete({
+      _id,
+      userId: (session.user as { id?: string }).id,
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
     return NextResponse.json(
@@ -116,7 +121,7 @@ export async function POST(req: NextRequest) {
     // Attach user info to the task
     const doc = await Planner.create({
       ...body,
-      userId: session.user.id,
+      userId: (session.user as { id?: string }).id,
       userEmail: session.user.email,
     });
     return NextResponse.json({ success: true, data: doc });
