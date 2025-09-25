@@ -55,7 +55,7 @@ export const authOptions = {
   callbacks: {
     async session({ session, token }: { session: Session; token: JWT }) {
       if (session?.user) {
-        session.user.id = token.sub;
+        (session.user as { id?: string }).id = token.sub;
       }
       return session;
     },
