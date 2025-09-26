@@ -1,3 +1,14 @@
+// CORS preflight handler
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+    },
+  });
+}
 import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import mongoose from "mongoose";
@@ -23,10 +34,15 @@ const Planner =
 export async function GET(req: NextRequest) {
   await dbConnect();
   const session = await getServerSession(authOptions);
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
   if (!session || !(session.user && (session.user as { id?: string }).id)) {
-    return NextResponse.json(
-      { success: false, error: "Unauthorized" },
-      { status: 401 }
+    return new NextResponse(
+      JSON.stringify({ success: false, error: "Unauthorized" }),
+      { status: 401, headers: corsHeaders }
     );
   }
   try {
@@ -35,14 +51,17 @@ export async function GET(req: NextRequest) {
     }).sort({
       deadline: 1,
     });
-    return NextResponse.json({ success: true, data: tasks });
+    return new NextResponse(JSON.stringify({ success: true, data: tasks }), {
+      status: 200,
+      headers: corsHeaders,
+    });
   } catch (error) {
-    return NextResponse.json(
-      {
+    return new NextResponse(
+      JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
+      }),
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -51,10 +70,15 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   await dbConnect();
   const session = await getServerSession(authOptions);
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
   if (!session || !(session.user && (session.user as { id?: string }).id)) {
-    return NextResponse.json(
-      { success: false, error: "Unauthorized" },
-      { status: 401 }
+    return new NextResponse(
+      JSON.stringify({ success: false, error: "Unauthorized" }),
+      { status: 401, headers: corsHeaders }
     );
   }
   const { _id, ...update } = await req.json();
@@ -65,14 +89,17 @@ export async function PATCH(req: NextRequest) {
       update,
       { new: true }
     );
-    return NextResponse.json({ success: true, data: updated });
+    return new NextResponse(JSON.stringify({ success: true, data: updated }), {
+      status: 200,
+      headers: corsHeaders,
+    });
   } catch (error) {
-    return NextResponse.json(
-      {
+    return new NextResponse(
+      JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
+      }),
+      { status: 500, headers: corsHeaders }
     );
   }
 }
@@ -81,10 +108,15 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   await dbConnect();
   const session = await getServerSession(authOptions);
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
   if (!session || !(session.user && (session.user as { id?: string }).id)) {
-    return NextResponse.json(
-      { success: false, error: "Unauthorized" },
-      { status: 401 }
+    return new NextResponse(
+      JSON.stringify({ success: false, error: "Unauthorized" }),
+      { status: 401, headers: corsHeaders }
     );
   }
   const { _id } = await req.json();
@@ -94,26 +126,34 @@ export async function DELETE(req: NextRequest) {
       _id,
       userId: (session.user as { id?: string }).id,
     });
-    return NextResponse.json({ success: true });
+    return new NextResponse(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: corsHeaders,
+    });
   } catch (error) {
-    return NextResponse.json(
-      {
+    return new NextResponse(
+      JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
+      }),
+      { status: 500, headers: corsHeaders }
     );
   }
 }
 
 // Create a new task for the authenticated user
 export async function POST(req: NextRequest) {
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,PATCH,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  };
   try {
     const session = await getServerSession(authOptions);
     if (!session || !(session.user && (session.user as { id?: string }).id)) {
-      return NextResponse.json(
-        { success: false, error: "Unauthorized" },
-        { status: 401 }
+      return new NextResponse(
+        JSON.stringify({ success: false, error: "Unauthorized" }),
+        { status: 401, headers: corsHeaders }
       );
     }
     await dbConnect();
@@ -124,15 +164,18 @@ export async function POST(req: NextRequest) {
       userId: (session.user as { id?: string }).id,
       userEmail: session.user.email,
     });
-    return NextResponse.json({ success: true, data: doc });
+    return new NextResponse(JSON.stringify({ success: true, data: doc }), {
+      status: 200,
+      headers: corsHeaders,
+    });
   } catch (error) {
     console.error("POST /api/save error:", error);
-    return NextResponse.json(
-      {
+    return new NextResponse(
+      JSON.stringify({
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
+      }),
+      { status: 500, headers: corsHeaders }
     );
   }
 }
