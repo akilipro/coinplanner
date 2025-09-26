@@ -51,7 +51,7 @@ export async function GET(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   await dbConnect();
   const session = await getServerSession(authOptions);
-  if (!session || !session.user?.id) {
+  if (!session || !(session.user && (session.user as { id?: string }).id)) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
       { status: 401 }
@@ -81,7 +81,7 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   await dbConnect();
   const session = await getServerSession(authOptions);
-  if (!session || !session.user?.id) {
+  if (!session || !(session.user && (session.user as { id?: string }).id)) {
     return NextResponse.json(
       { success: false, error: "Unauthorized" },
       { status: 401 }
@@ -110,7 +110,7 @@ export async function DELETE(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || !session.user?.id) {
+    if (!session || !(session.user && (session.user as { id?: string }).id)) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
         { status: 401 }
