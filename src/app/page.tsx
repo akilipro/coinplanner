@@ -36,9 +36,10 @@ export default function Home() {
   const [authError, setAuthError] = useState("");
   // Profile dropdown state (must be at top level)
   const [showProfile, setShowProfile] = useState(false);
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
   useEffect(() => {
     if (session) {
-      fetch("/api/save")
+      fetch(`${API_BASE_URL}/api/save`)
         .then((res) => res.json())
         .then((data) => {
           if (data.success) {
@@ -162,6 +163,17 @@ export default function Home() {
             {authTab === "signin" ? "Sign In" : "Register"}
           </button>
         </form>
+        <div className="mt-8 text-white/80 text-sm text-center">
+          © 2025 Developed by{" "}
+          <a
+            href="https://portfolio-ten-woad-19.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-yellow-300"
+          >
+            Akili Group
+          </a>
+        </div>
       </div>
     );
   }
@@ -173,7 +185,7 @@ export default function Home() {
   const addTask = async () => {
     if (!form.name.trim() || !form.value.trim() || !form.deadline.trim())
       return;
-    const res = await fetch("/api/save", {
+    const res = await fetch(`${API_BASE_URL}/api/save`, {
       credentials: "include",
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -198,7 +210,7 @@ export default function Home() {
   const toggleTask = async (_id: string) => {
     const task = tasks.find((t) => t._id === _id);
     if (!task) return;
-    const res = await fetch(`/api/save?_id=${_id}`, {
+    const res = await fetch(`${API_BASE_URL}/api/save?_id=${_id}`, {
       credentials: "include",
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -212,7 +224,7 @@ export default function Home() {
   };
 
   const deleteTask = async (_id: string) => {
-    const res = await fetch(`/api/save?_id=${_id}`, {
+    const res = await fetch(`${API_BASE_URL}/api/save?_id=${_id}`, {
       method: "DELETE",
       credentials: "include",
     });
@@ -237,7 +249,7 @@ export default function Home() {
     newValue: string,
     newDeadline: string
   ) => {
-    const res = await fetch(`/api/save?_id=${_id}`, {
+    const res = await fetch(`${API_BASE_URL}/api/save?_id=${_id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -264,12 +276,7 @@ export default function Home() {
   };
 
   return (
-    <div
-      className="min-h-screen flex flex-col items-center justify-center py-10 px-4"
-      style={{
-        background: `linear-gradient(135deg, ${PRIMARY} 60%, ${SECONDARY} 100%)`,
-      }}
-    >
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-900 to-yellow-400 py-10 px-4">
       <div className="w-full max-w-2xl bg-white/90 rounded-2xl shadow-2xl p-8 relative animate-fade-in">
         {/* Profile Icon Dropdown */}
         <div className="absolute top-4 right-4 z-20">
@@ -545,7 +552,7 @@ export default function Home() {
           target="_blank"
           rel="noopener noreferrer"
           className="underline hover:text-[var(--tertiary)]"
-          style={{ color: TERTIARY }}
+          style={{ color: SECONDARY }}
         >
           Akili Group
         </a>
